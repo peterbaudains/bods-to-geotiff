@@ -12,7 +12,7 @@ import os
 from neo4j import GraphDatabase
 from dotenv import dotenv_values
 config = dotenv_values(".env")
-logging.basicConfig(filename='bods_to_geotiff.log', 
+logging.basicConfig(filename='bods_to_geotiff_nwc.log', 
                     filemode='a',
                     format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                     datefmt='%H:%M:%S',
@@ -72,7 +72,7 @@ def write_raster(gdf, bounds, resolution, filename):
         route_raster = rasterio.features.rasterize(shapes=[(g,1) for g in grp.geometry], out_shape=shape, transform=transform)
         stacked_raster += route_raster
     
-    with rasterio.open(config['OUTDIR'] + "/distinctJourneyCounts/"+filename, 'w', 
+    with rasterio.open(config['DATADIR'] + "/distinctJourneyCounts/"+filename, 'w', 
                     driver = 'GTiff',
                     height = stacked_raster.shape[0],
                     width = stacked_raster.shape[1],
@@ -104,7 +104,7 @@ def write_raster(gdf, bounds, resolution, filename):
                               out=-1 * np.ones(shape).astype('float32'), 
                               where=raster_obs_count!=0)
 
-    with rasterio.open(config['OUTDIR'] + "/averageSpeeds/"+filename, 'w', 
+    with rasterio.open(config['DATADIR'] + "/averageSpeeds/"+filename, 'w', 
                         driver = 'GTiff',
                         height = raster_speeds.shape[0],
                         width = raster_speeds.shape[1],
@@ -122,13 +122,14 @@ if __name__=="__main__":
     res = 50
     current_datetime = dt.datetime(2023, 12, 17, 0, 0)
     time_delta = dt.timedelta(0, 3600)
-    end_date = dt.datetime(2024, 1, 9, 0, 0)
-    bounds = [521055,169648, 547612,  188327]
+    end_date = dt.datetime(2023, 12, 31, 0, 0)
+    london_bounds = [521055, 169648, 547612, 188327]
+    nwc_bounds = [400671, 537124, 446086, 588518]
 
     while current_datetime < end_date:
         t1 = time.time()
         driver = get_driver()
-        with driver.session(database='busopendata') as session:
+        with driver.session(database='nwcbusopendata') as session:
             log.info("Querying Neo4j for %s-%s"  % (current_datetime.strftime('%Y%m%d'), current_datetime.strftime('%H%M%S')))
             df = session.execute_read(get_point_data, 
                                       recordedDateInt=int(current_datetime.strftime('%Y%m%d')),
@@ -144,11 +145,11 @@ if __name__=="__main__":
                                 crs=4326)
             gdf = gdf.to_crs(27700)
             
-            os.makedirs(config['OUTDIR'] + "distinctJourneyCounts/%d/%d/%d" % (current_datetime.year, current_datetime.month, current_datetime.day), exist_ok=True)
-            os.makedirs(config['OUTDIR'] + "averageSpeeds/%d/%d/%d" % (current_datetime.year, current_datetime.month, current_datetime.day), exist_ok=True)
+            os.makedirs(config['DATADIR'] + "distinctJourneyCounts/%d/%d/%d" % (current_datetime.year, current_datetime.month, current_datetime.day), exist_ok=True)
+            os.makedirs(config['DATADIR'] + "averageSpeeds/%d/%d/%d" % (current_datetime.year, current_datetime.month, current_datetime.day), exist_ok=True)
             filename = "%d/%d/%d/%s_%s_%s.gtiff" % (current_datetime.year, current_datetime.month, current_datetime.day, current_datetime.strftime('%Y%m%d%H'), int(time_delta.total_seconds()), res)
             log.info("Writing raster data")
-            write_raster(gdf,bounds, res, filename)
+            write_raster(gdf, nwc_bounds, res, filename)
             
             log.info('Time taken for this time interval: %s' % (time.time() - t1))
         else:
