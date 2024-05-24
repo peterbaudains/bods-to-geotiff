@@ -144,9 +144,9 @@ def write_raster(gdf, bounds, resolution, filename):
 if __name__=="__main__":
 
     res = 50
-    current_datetime = dt.datetime(2023, 12, 17, 0, 0)
+    current_datetime = dt.datetime(2024, 1, 28, 0, 0)
     time_delta = dt.timedelta(0, 3600)
-    end_date = dt.datetime(2023, 12, 31, 0, 0)
+    end_date = dt.datetime(2024, 5, 9, 0, 0)
     london_bounds = [521055, 169648, 547612, 188327]
     nwc_bounds = [400671, 537124, 446086, 588518]
 
@@ -198,7 +198,7 @@ if __name__=="__main__":
             
             log.info("Writing raster data")
             
-            write_raster(gdf, nwc_bounds, res, filename)
+            write_raster(gdf, london_bounds, res, filename)
             
             log.info('Time taken for this time interval: %s' % \
                      (time.time() - t1))
